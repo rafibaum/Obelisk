@@ -7,6 +7,11 @@ pub mod codec;
 mod status;
 mod login;
 
+pub struct Header {
+    length: i32,
+    id: i32
+}
+
 pub fn start() {
     let listener = TcpListener::bind("localhost:25565").unwrap();
 
@@ -26,7 +31,7 @@ fn handle_connection(mut stream: TcpStream) {
 }
 
 fn read_handshake(stream: &mut TcpStream) -> Result<(), io::Error> {
-    let (_length, _id) = read_header(stream)?;
+    let _header = read_header(stream)?;
     let _version = codec::read_varint(stream)?;
     let _address = codec::read_string(stream)?;
     let _port = codec::read_ushort(stream)?;
@@ -53,6 +58,9 @@ fn send_packet(stream: &mut TcpStream, id: i32, data: &[u8]) -> Result<(), io::E
     Ok(stream.flush()?)
 }
 
-fn read_header(stream: &mut TcpStream) -> Result<(i32, i32), io::Error> {
-    Ok((codec::read_varint(stream)?, codec::read_varint(stream)?))
+fn read_header(stream: &mut TcpStream) -> Result<Header, io::Error> {
+    Ok(Header {
+        length: codec::read_varint(stream)?,
+        id: codec::read_varint(stream)?
+    })
 }

@@ -6,10 +6,10 @@ use super::codec;
 
 pub fn read_status(stream: &mut TcpStream) -> Result<(), io::Error> {
     loop {
-        let (_length, id) = super::read_header(stream)?;
-        if id == 0 {
+        let header = super::read_header(stream)?;
+        if header.id == 0 {
             send_status(stream)?
-        } else if id == 1 {
+        } else if header.id == 1 {
             send_ping(stream)?
         }
     }
