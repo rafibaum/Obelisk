@@ -1,25 +1,26 @@
 use std::net::TcpStream;
 use std::io::Read;
 use super::codec;
+use std::io;
 
-pub fn read_status(stream: &mut TcpStream) {
+pub fn read_status(stream: &mut TcpStream) -> Result<(), io::Error> {
     loop {
-        let (length, id) = super::read_header(stream);
+        let (_length, id) = super::read_header(stream)?;
         if id == 0 {
-            send_status(stream);
+            send_status(stream)?
         } else if id == 1 {
-            send_ping(stream);
+            send_ping(stream)?
         }
     }
 }
 
-fn send_ping(stream: &mut TcpStream) {
+fn send_ping(stream: &mut TcpStream) -> Result<(), io::Error> {
     let mut payload = [0; 8];
     stream.read(&mut payload).unwrap();
-    super::send_packet(stream, 1, &payload);
+    super::send_packet(stream, 1, &payload)
 }
 
-fn send_status(stream: &mut TcpStream) {
+fn send_status(stream: &mut TcpStream) -> Result<(), io::Error> {
     let response = codec::encode_string("{
     \"version\": {
         \"name\": \"1.13.2\",
@@ -40,5 +41,5 @@ fn send_status(stream: &mut TcpStream) {
     }
 }");
 
-    super::send_packet(stream, 0, &response);
+    super::send_packet(stream, 0, &response)
 }
