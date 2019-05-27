@@ -1,6 +1,7 @@
 use std::net::TcpStream;
 use std::io::Read;
 use std::io;
+use serde_json::json;
 use super::codec;
 
 pub fn read_status(stream: &mut TcpStream) -> Result<(), io::Error> {
@@ -9,12 +10,9 @@ pub fn read_status(stream: &mut TcpStream) -> Result<(), io::Error> {
         if id == 0 {
             send_status(stream)?
         } else if id == 1 {
-            send_ping(stream)?;
-            break;
+            send_ping(stream)?
         }
     }
-
-    Ok(())
 }
 
 fn send_ping(stream: &mut TcpStream) -> Result<(), io::Error> {
@@ -24,25 +22,20 @@ fn send_ping(stream: &mut TcpStream) -> Result<(), io::Error> {
 }
 
 fn send_status(stream: &mut TcpStream) -> Result<(), io::Error> {
-    let response = codec::encode_string("{
-    \"version\": {
-        \"name\": \"1.13.2\",
-        \"protocol\": 404
+    let response = codec::encode_string(&json!({
+    "version": {
+        "name": "1.13.2",
+        "protocol": 404
     },
-    \"players\": {
-        \"max\": 100,
-        \"online\": 5,
-        \"sample\": [
-            {
-                \"name\": \"Cobol72\",
-                \"id\": \"f2b92aaf-40cc-4272-ad73-179f1b624658\"
-            }
-        ]
+    "players": {
+        "max": 10,
+        "online": 0,
+        "sample": []
     },
-    \"description\": {
-        \"text\": \"Hello world\"
+    "description": {
+        "text": "Hello world"
     }
-}");
+    }).to_string());
 
     super::send_packet(stream, 0, &response)
 }
