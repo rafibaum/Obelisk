@@ -1,10 +1,11 @@
 use std::net::{TcpListener, TcpStream};
-use std::io::Write;
+use std::io::{Write, ErrorKind};
 use std::io;
 use std::error::Error;
 
 pub mod codec;
 mod status;
+mod login;
 
 pub fn start() {
     let listener = TcpListener::bind("localhost:25565").unwrap();
@@ -33,9 +34,9 @@ fn read_handshake(stream: &mut TcpStream) -> Result<(), io::Error> {
     if state == 1 {
         status::read_status(stream)?
     } else if state == 2 {
-        // Login
+        login::handle_login(stream)?
     } else {
-        // Error
+        return Err(io::Error::new(ErrorKind::InvalidData, "Handshake had invalid state"));
     }
 
     Ok(())

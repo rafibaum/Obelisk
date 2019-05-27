@@ -1,7 +1,7 @@
 use std::net::TcpStream;
 use std::io::Read;
-use super::codec;
 use std::io;
+use super::codec;
 
 pub fn read_status(stream: &mut TcpStream) -> Result<(), io::Error> {
     loop {
@@ -9,9 +9,12 @@ pub fn read_status(stream: &mut TcpStream) -> Result<(), io::Error> {
         if id == 0 {
             send_status(stream)?
         } else if id == 1 {
-            send_ping(stream)?
+            send_ping(stream)?;
+            break;
         }
     }
+
+    Ok(())
 }
 
 fn send_ping(stream: &mut TcpStream) -> Result<(), io::Error> {
