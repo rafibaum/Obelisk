@@ -2,6 +2,7 @@ use std::io::{ErrorKind, Read};
 use std::io;
 use std::net::TcpStream;
 use std::mem::transmute;
+use byteorder::{BigEndian, WriteBytesExt};
 use crate::world;
 
 pub fn encode_bool(val: bool) -> Vec<u8> {
@@ -23,11 +24,20 @@ pub fn encode_ubyte(num: u8) -> Vec<u8> {
     vec![num]
 }
 
+pub fn encode_double(num: f64) -> Vec<u8> {
+    let mut val = [0u8; 8];
+    val.as_mut().write_f64::<BigEndian>(num)
+        .expect("Unable to encode double");
+
+    val.to_vec()
+}
+
 pub fn encode_float(num: f32) -> Vec<u8> {
-    unsafe {
-        let bytes: [u8; 4] = transmute(num.to_be());
-        bytes.to_vec()
-    }
+    let mut val = [0u8; 4];
+    val.as_mut().write_f32::<BigEndian>(num)
+        .expect("Unable to encode float");
+
+    val.to_vec()
 }
 
 pub fn encode_long(num: i64) -> Vec<u8> {
@@ -65,7 +75,7 @@ pub fn encode_varint(mut num: i32) -> Vec<u8> {
 pub fn encode_position(vector: &world::Vector) -> Vec<u8> {
     let value: i64 = ((vector.x as i64 & 0x3FFFFFF) << 38) |
         ((vector.y as i64 & 0xFFF) << 26) |
-        (z & 0x3FFFFFF);
+        (vector.z as i64 & 0x3FFFFFF);
 
     encode_long(value)
 }
@@ -92,6 +102,13 @@ pub fn read_ushort(stream: &mut TcpStream) -> Result<u16, io::Error> {
 }
 
 pub fn read_varint(stream: &mut TcpStream) -> Result<i32, io::Error> {
+    match read_varint_size(stream) {
+        Ok((result, _)) => Ok(result),
+        Err(err) => Err(err)
+    }
+}
+
+pub fn read_varint_size(stream: &mut TcpStream) -> Result<(i32, i32), io::Error> {
     let mut bytes_read = 0;
     let mut result: i32 = 0;
     loop {
@@ -111,7 +128,7 @@ pub fn read_varint(stream: &mut TcpStream) -> Result<i32, io::Error> {
         }
     }
 
-    Ok(result)
+    Ok((result, bytes_read))
 }
 
 pub fn read_string(stream: &mut TcpStream) -> Result<String, io::Error> {

@@ -6,7 +6,7 @@ pub struct Player {
     pub entity_id: i32
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Gamemode {
     Survival,
     Creative,

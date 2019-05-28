@@ -67,8 +67,11 @@ fn send_packet(stream: &mut TcpStream, id: i32, data: &[u8]) -> Result<(), io::E
 }
 
 fn read_header(stream: &mut TcpStream) -> Result<Header, io::Error> {
+    let length = codec::read_varint(stream)?;
+    let (id, id_size) = codec::read_varint_size(stream)?;
+
     Ok(Header {
-        length: codec::read_varint(stream)?,
-        id: codec::read_varint(stream)?
+        length: length - id_size,
+        id
     })
 }

@@ -6,6 +6,9 @@ use super::codec;
 
 pub fn handle_play(stream: &mut TcpStream, server: &crate::Obelisk, player: &player::Player) -> Result<(), io::Error> {
     send_join_game(stream, server, player)?;
+    send_spawn_position(stream, server)?;
+    send_player_abilities(stream, server)?;
+    send_player_position_and_look(stream, server)?;
 
     Ok(())
 }
@@ -41,7 +44,7 @@ fn send_player_abilities(stream: &mut TcpStream, server: &crate::Obelisk) -> Res
     let mut data = Vec::new();
 
     let abilities = if server.spawn_location.world.upgrade()
-        .expect("Spawn world does not exist").gamemode == world::Gamemode::Survival {
+        .expect("Spawn world does not exist").gamemode == player::Gamemode::Survival {
         0
     } else {
         0b1111
@@ -52,4 +55,19 @@ fn send_player_abilities(stream: &mut TcpStream, server: &crate::Obelisk) -> Res
     data.append(&mut codec::encode_float(0.1)); // FOV modifier
 
     super::send_packet(stream, 0x2E, &data)
+}
+
+fn send_player_position_and_look(stream: &mut TcpStream, server: &crate::Obelisk) -> Result<(), io::Error> {
+    let mut data = Vec::new();
+
+    let vec = server.spawn_location.to_vector();
+    data.append(&mut codec::encode_double(vec.x));
+    data.append(&mut codec::encode_double(vec.y));
+    data.append(&mut codec::encode_double(vec.z));
+    data.append(&mut codec::encode_float(0.0)); // Yaw
+    data.append(&mut codec::encode_float(0.0)); // Pitch
+    data.append(&mut codec::encode_byte(0)); // Flags
+    data.append(&mut codec::encode_varint(rand::random())); // teleport id
+
+    super::send_packet(stream, 0x32, &data)
 }
