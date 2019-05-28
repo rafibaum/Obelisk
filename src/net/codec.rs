@@ -12,8 +12,22 @@ pub fn encode_bool(val: bool) -> Vec<u8> {
     }
 }
 
+pub fn encode_byte(num: i8) -> Vec<u8> {
+    unsafe {
+        let bytes: [u8; 1] = transmute(num.to_be());
+        bytes.to_vec()
+    }
+}
+
 pub fn encode_ubyte(num: u8) -> Vec<u8> {
     vec![num]
+}
+
+pub fn encode_float(num: f32) -> Vec<u8> {
+    unsafe {
+        let bytes: [u8; 4] = transmute(num.to_be());
+        bytes.to_vec()
+    }
 }
 
 pub fn encode_long(num: i64) -> Vec<u8> {

@@ -1,6 +1,7 @@
 use std::net::TcpStream;
 use std::io;
 use crate::entities::player;
+use crate::world;
 use super::codec;
 
 pub fn handle_play(stream: &mut TcpStream, server: &crate::Obelisk, player: &player::Player) -> Result<(), io::Error> {
@@ -34,4 +35,21 @@ fn send_spawn_position(stream: &mut TcpStream, server: &crate::Obelisk) -> Resul
     let data = codec::encode_position(&server.spawn_location.to_vector());
 
     super::send_packet(stream, 0x49, &data)
+}
+
+fn send_player_abilities(stream: &mut TcpStream, server: &crate::Obelisk) -> Result<(), io::Error> {
+    let mut data = Vec::new();
+
+    let abilities = if server.spawn_location.world.upgrade()
+        .expect("Spawn world does not exist").gamemode == world::Gamemode::Survival {
+        0
+    } else {
+        0b1111
+    };
+
+    data.append(&mut codec::encode_byte(abilities));
+    data.append(&mut codec::encode_float(0.05)); // Flying speed
+    data.append(&mut codec::encode_float(0.1)); // FOV modifier
+
+    super::send_packet(stream, 0x2E, &data)
 }
