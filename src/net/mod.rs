@@ -2,6 +2,7 @@ use std::net::{TcpListener, TcpStream};
 use std::io::{Write, ErrorKind};
 use std::io;
 use std::error::Error;
+use crate::obelisk::Obelisk;
 
 pub mod codec;
 mod status;
@@ -12,32 +13,32 @@ pub struct Header {
     id: i32
 }
 
-pub fn start() {
+pub fn start(server: &Obelisk) {
     let listener = TcpListener::bind("localhost:25565").unwrap();
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => handle_connection(stream),
+            Ok(stream) => handle_connection(server, stream),
             Err(_) => ()
         }
     }
 }
 
-fn handle_connection(mut stream: TcpStream) {
-    match read_handshake(&mut stream) {
+fn handle_connection(server: &Obelisk, mut stream: TcpStream) {
+    match read_handshake(server, &mut stream) {
         Ok(_) => (),
         Err(error) => println!("TCP stream error: {}", error.description())
     }
 }
 
-fn read_handshake(stream: &mut TcpStream) -> Result<(), io::Error> {
+fn read_handshake(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::Error> {
     let _header = read_header(stream)?;
     let _version = codec::read_varint(stream)?;
     let _address = codec::read_string(stream)?;
     let _port = codec::read_ushort(stream)?;
     let state = codec::read_varint(stream)?;
     if state == 1 {
-        status::read_status(stream)?
+        status::read_status(server, stream)?
     } else if state == 2 {
         login::handle_login(stream)?
     } else {
