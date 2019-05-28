@@ -5,8 +5,6 @@ use serde::Serialize;
 use serde_json::json;
 use super::codec;
 use crate::obelisk::Obelisk;
-use core::borrow::Borrow;
-use uuid::Uuid;
 
 pub fn read_status(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::Error> {
     loop {

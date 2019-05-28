@@ -1,6 +1,26 @@
 use std::io::{ErrorKind, Read};
 use std::io;
 use std::net::TcpStream;
+use std::mem::transmute;
+
+pub fn encode_bool(val: bool) -> Vec<u8> {
+    if val {
+        vec![1]
+    } else {
+        vec![0]
+    }
+}
+
+pub fn encode_ubyte(num: u8) -> Vec<u8> {
+    vec![num]
+}
+
+pub fn encode_int(num: i32) -> Vec<u8> {
+    unsafe {
+        let bytes: [u8; 4] = transmute(num.to_be());
+        bytes.to_vec()
+    }
+}
 
 pub fn encode_varint(mut num: i32) -> Vec<u8> {
     let mut result = Vec::new();

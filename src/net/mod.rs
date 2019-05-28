@@ -3,10 +3,12 @@ use std::io::{Write, ErrorKind};
 use std::io;
 use std::error::Error;
 use crate::obelisk::Obelisk;
+use crate::entities::player;
 
 pub mod codec;
-mod status;
 mod login;
+mod play;
+mod status;
 
 pub struct Header {
     length: i32,
@@ -26,26 +28,31 @@ pub fn start(server: &Obelisk) {
 
 fn handle_connection(server: &Obelisk, mut stream: TcpStream) {
     match read_handshake(server, &mut stream) {
-        Ok(_) => (),
+        Ok(None) => (),
+        Ok(Some(player)) => {
+            match play::handle_play(&mut stream, server, &player) {
+                Ok(()) => (),
+                Err(error) => println!("TCP stream error: {}", error.description())
+            }
+        },
         Err(error) => println!("TCP stream error: {}", error.description())
     }
 }
 
-fn read_handshake(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::Error> {
+fn read_handshake(server: &Obelisk, stream: &mut TcpStream) -> Result<Option<player::Player>, io::Error> {
     let _header = read_header(stream)?;
     let _version = codec::read_varint(stream)?;
     let _address = codec::read_string(stream)?;
     let _port = codec::read_ushort(stream)?;
     let state = codec::read_varint(stream)?;
     if state == 1 {
-        status::read_status(server, stream)?
+        status::read_status(server, stream)?;
+        return Ok(None)
     } else if state == 2 {
-        login::handle_login(stream)?
+        return Ok(Some(login::handle_login(stream)?));
     } else {
         return Err(io::Error::new(ErrorKind::InvalidData, "Handshake had invalid state"));
     }
-
-    Ok(())
 }
 
 fn send_packet(stream: &mut TcpStream, id: i32, data: &[u8]) -> Result<(), io::Error> {

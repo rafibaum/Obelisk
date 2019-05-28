@@ -1,4 +1,5 @@
 use crate::entities::player;
+use std::rc::Weak;
 
 pub struct World {
     pub gamemode: player::Gamemode,
@@ -8,12 +9,27 @@ pub struct World {
     pub level_type: LevelType
 }
 
-pub enum Dimension {
-    Nether,
-    Overworld,
-    End
+pub struct Vector {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64
 }
 
+pub struct Location {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub world: Weak<World>
+}
+
+#[derive(Copy, Clone)]
+pub enum Dimension {
+    Overworld = 0,
+    End = 1,
+    Nether = -1,
+}
+
+#[derive(Copy, Clone)]
 pub enum Difficulty {
     Peaceful,
     Easy,
@@ -21,10 +37,23 @@ pub enum Difficulty {
     Hard
 }
 
+#[derive(Copy, Clone)]
 pub enum LevelType {
     Default,
     Flat,
     LargeBiomes,
     Amplified,
     Default_1_1
+}
+
+impl LevelType {
+    pub fn to_string(&self) -> &str {
+        match self {
+            LevelType::Default => "default",
+            LevelType::Flat => "flat",
+            LevelType::LargeBiomes => "largeBiomes",
+            LevelType::Amplified => "amplified",
+            LevelType::Default_1_1 => "default_1_1"
+        }
+    }
 }
