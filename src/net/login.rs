@@ -32,5 +32,5 @@ fn send_login_success(stream: &mut TcpStream, username: &str, uuid: &str) -> Res
     data.append(&mut codec::encode_string(uuid));
     data.append(&mut codec::encode_string(username));
 
-    super::send_packet(stream, 2, &data)
+    super::send_packet(stream, 0x2, &data)
 }

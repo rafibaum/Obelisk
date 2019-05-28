@@ -2,6 +2,7 @@ use std::io::{ErrorKind, Read};
 use std::io;
 use std::net::TcpStream;
 use std::mem::transmute;
+use crate::world;
 
 pub fn encode_bool(val: bool) -> Vec<u8> {
     if val {
@@ -13,6 +14,13 @@ pub fn encode_bool(val: bool) -> Vec<u8> {
 
 pub fn encode_ubyte(num: u8) -> Vec<u8> {
     vec![num]
+}
+
+pub fn encode_long(num: i64) -> Vec<u8> {
+    unsafe {
+        let bytes: [u8; 8] = transmute(num.to_be());
+        bytes.to_vec()
+    }
 }
 
 pub fn encode_int(num: i32) -> Vec<u8> {
@@ -38,6 +46,14 @@ pub fn encode_varint(mut num: i32) -> Vec<u8> {
     }
 
     result
+}
+
+pub fn encode_position(vector: &world::Vector) -> Vec<u8> {
+    let value: i64 = ((vector.x as i64 & 0x3FFFFFF) << 38) |
+        ((vector.y as i64 & 0xFFF) << 26) |
+        (z & 0x3FFFFFF);
+
+    encode_long(value)
 }
 
 pub fn encode_string(string: &str) -> Vec<u8> {

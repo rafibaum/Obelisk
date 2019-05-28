@@ -22,6 +22,16 @@ pub struct Location {
     pub world: Weak<World>
 }
 
+impl Location {
+    pub fn to_vector(&self) -> Vector {
+        Vector {
+            x: self.x,
+            y: self.y,
+            z: self.z
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 pub enum Dimension {
     Overworld = 0,

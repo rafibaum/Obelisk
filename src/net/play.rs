@@ -27,5 +27,11 @@ fn send_join_game(stream: &mut TcpStream, server: &crate::Obelisk, player: &play
     data.append(&mut codec::encode_string(spawn_world.level_type.to_string()));
     data.append(&mut codec::encode_bool(false)); // Optional debug values
 
-    super::send_packet(stream, 25, &data)
+    super::send_packet(stream, 0x25, &data)
+}
+
+fn send_spawn_position(stream: &mut TcpStream, server: &crate::Obelisk) -> Result<(), io::Error> {
+    let data = codec::encode_position(&server.spawn_location.to_vector());
+
+    super::send_packet(stream, 0x49, &data)
 }

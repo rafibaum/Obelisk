@@ -21,7 +21,7 @@ pub fn read_status(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::E
 fn send_ping(stream: &mut TcpStream) -> Result<(), io::Error> {
     let mut payload = [0; 8];
     stream.read(&mut payload).unwrap();
-    super::send_packet(stream, 1, &payload)
+    super::send_packet(stream, 0x1, &payload)
 }
 
 fn send_status<'a>(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::Error> {
@@ -51,5 +51,5 @@ fn send_status<'a>(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::E
     }
     }).to_string());
     println!("Send status");
-    super::send_packet(stream, 0, &response)
+    super::send_packet(stream, 0x0, &response)
 }
