@@ -1,10 +1,10 @@
-use std::net::TcpStream;
-use std::io;
-use crate::entities::player;
+/*use crate::entities::player;
 use crate::world;
 use super::codec;
+use tokio::net::TcpStream;
+use tokio::io::{Error, ErrorKind};
 
-pub fn handle_play(stream: &mut TcpStream, server: &crate::Obelisk, player: &player::Player) -> Result<(), io::Error> {
+pub fn handle_play(stream: &mut TcpStream, server: &crate::Obelisk, player: &player::Player) -> Result<(), Error> {
     send_join_game(stream, server, player)?;
     send_spawn_position(stream, server)?;
     send_player_abilities(stream, server)?;
@@ -13,7 +13,7 @@ pub fn handle_play(stream: &mut TcpStream, server: &crate::Obelisk, player: &pla
     Ok(())
 }
 
-fn send_join_game(stream: &mut TcpStream, server: &crate::Obelisk, player: &player::Player) -> Result<(), io::Error> {
+fn send_join_game(stream: &mut TcpStream, server: &crate::Obelisk, player: &player::Player) -> Result<(), Error> {
     let mut data = Vec::new();
     data.append(&mut codec::encode_int(player.entity_id));
 
@@ -34,13 +34,13 @@ fn send_join_game(stream: &mut TcpStream, server: &crate::Obelisk, player: &play
     super::send_packet(stream, 0x25, &data)
 }
 
-fn send_spawn_position(stream: &mut TcpStream, server: &crate::Obelisk) -> Result<(), io::Error> {
+fn send_spawn_position(stream: &mut TcpStream, server: &crate::Obelisk) -> Result<(), Error> {
     let data = codec::encode_position(&server.spawn_location.to_vector());
 
     super::send_packet(stream, 0x49, &data)
 }
 
-fn send_player_abilities(stream: &mut TcpStream, server: &crate::Obelisk) -> Result<(), io::Error> {
+fn send_player_abilities(stream: &mut TcpStream, server: &crate::Obelisk) -> Result<(), Error> {
     let mut data = Vec::new();
 
     let abilities = if server.spawn_location.world.upgrade()
@@ -57,7 +57,7 @@ fn send_player_abilities(stream: &mut TcpStream, server: &crate::Obelisk) -> Res
     super::send_packet(stream, 0x2E, &data)
 }
 
-fn send_player_position_and_look(stream: &mut TcpStream, server: &crate::Obelisk) -> Result<(), io::Error> {
+fn send_player_position_and_look(stream: &mut TcpStream, server: &crate::Obelisk) -> Result<(), Error> {
     let mut data = Vec::new();
 
     let vec = server.spawn_location.to_vector();
@@ -71,3 +71,4 @@ fn send_player_position_and_look(stream: &mut TcpStream, server: &crate::Obelisk
 
     super::send_packet(stream, 0x32, &data)
 }
+*/

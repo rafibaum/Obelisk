@@ -1,5 +1,5 @@
 use crate::entities::player;
-use std::rc::Weak;
+use std::sync::Weak;
 
 pub struct World {
     pub gamemode: player::Gamemode,

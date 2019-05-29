@@ -1,4 +1,4 @@
-use std::net::TcpStream;
+/*use std::net::TcpStream;
 use std::io::Read;
 use std::io;
 use serde::Serialize;
@@ -53,3 +53,4 @@ fn send_status<'a>(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::E
     println!("Send status");
     super::send_packet(stream, 0x0, &response)
 }
+*/

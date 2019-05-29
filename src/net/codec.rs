@@ -1,11 +1,12 @@
-use std::io::{ErrorKind, Read};
-use std::io;
-use std::net::TcpStream;
 use std::mem::transmute;
 use byteorder::{BigEndian, WriteBytesExt};
 use crate::world;
+use tokio::net::TcpStream;
+use tokio::io::{Error, ErrorKind};
+use tokio::io::AsyncRead;
+use tokio::prelude::Future;
 
-pub fn encode_bool(val: bool) -> Vec<u8> {
+/*pub fn encode_bool(val: bool) -> Vec<u8> {
     if val {
         vec![1]
     } else {
@@ -89,55 +90,49 @@ pub fn encode_string(string: &str) -> Vec<u8> {
     encoded
 }
 
-pub fn read_long(stream: &mut TcpStream) -> Result<i64, io::Error> {
+pub fn read_long(stream: &mut TcpStream) -> Result<i64, Error> {
     let mut buffer = [0; 8];
     stream.read(&mut buffer)?;
     Ok(i64::from_be_bytes(buffer))
 }
 
-pub fn read_ushort(stream: &mut TcpStream) -> Result<u16, io::Error> {
+pub fn read_ushort(stream: &mut TcpStream) -> Result<u16, Error> {
     let mut buffer = [0; 2];
     stream.read(&mut buffer)?;
     Ok(u16::from_be_bytes(buffer))
 }
+*/
 
-pub fn read_varint(stream: &mut TcpStream) -> Result<i32, io::Error> {
-    match read_varint_size(stream) {
-        Ok((result, _)) => Ok(result),
-        Err(err) => Err(err)
-    }
-}
-
-pub fn read_varint_size(stream: &mut TcpStream) -> Result<(i32, i32), io::Error> {
-    let mut bytes_read = 0;
+pub fn read_varint(bytes: &mut [u8]) -> Result<i32, Error> {
     let mut result: i32 = 0;
-    loop {
-        let mut buffer = [0];
-        stream.read(&mut buffer)?;
+    let mut bytes_read = 0;
 
-        let value = (buffer[0] & 0b01111111) as i32;
+    for byte in bytes {
+        let value = (*byte & 0b01111111) as i32;
         result |= value << (7 * bytes_read);
         bytes_read += 1;
 
         if bytes_read > 5 {
-            return Err(io::Error::new(ErrorKind::InvalidData, "VarInt was too long"));
+            return Err(Error::new(ErrorKind::InvalidData, "VarInt was too long"));
         }
 
-        if buffer[0] & 0b10000000 == 0 {
+        if *byte & 0b10000000 == 0 {
             break;
         }
     }
 
-    Ok((result, bytes_read))
+    Ok(result)
 }
 
-pub fn read_string(stream: &mut TcpStream) -> Result<String, io::Error> {
+/*
+pub fn read_string(stream: &mut TcpStream) -> Result<String, Error> {
     let length = read_varint(stream)? as usize;
     let mut buffer = vec![0; length];
 
-    stream.read(&mut buffer).unwrap();
+    stream.read(&mut buffer)?;
     match String::from_utf8(buffer) {
         Ok(s) => Ok(s),
-        Err(_) => Err(io::Error::new(ErrorKind::InvalidData, "String had invalid data"))
+        Err(_) => Err(Error::new(ErrorKind::InvalidData, "String had invalid data"))
     }
 }
+*/

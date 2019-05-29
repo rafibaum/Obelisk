@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 use obelisk::Obelisk;
 use crate::entities::player;
 use crate::world::Location;
@@ -8,7 +8,7 @@ pub mod net;
 pub mod world;
 
 fn main() {
-    let world = Rc::new(world::World {
+    let world = Arc::new(world::World {
         gamemode: player::Gamemode::Creative,
         hardcore: false,
         dimension: world::Dimension::Overworld,
@@ -20,7 +20,7 @@ fn main() {
         x: 0.0,
         y: 128.0,
         z: 0.0,
-        world: Rc::downgrade(&world)
+        world: Arc::downgrade(&world)
     };
 
     let mut worlds = Vec::new();
@@ -33,14 +33,16 @@ fn main() {
         spawn_location
     };
 
-    obelisk.start();
+    let mut obelisk = Arc::new(RwLock::new(obelisk));
+
+    net::start(obelisk.clone());
 }
 
 pub mod obelisk {
-    use std::rc::Rc;
     use crate::entities::player;
     use crate::net;
     use crate::world;
+    use std::sync::Arc;
 
     pub const VERSION: &str = "1.13.2";
     pub const PROTOCOL: u16 = 404;
@@ -48,13 +50,7 @@ pub mod obelisk {
     pub struct Obelisk {
         pub players: Vec<player::Player>,
         pub max_players: u32,
-        pub worlds: Vec<Rc<world::World>>,
+        pub worlds: Vec<Arc<world::World>>,
         pub spawn_location: world::Location
-    }
-
-    impl Obelisk {
-        pub fn start(&mut self) {
-            net::start(&self);
-        }
     }
 }

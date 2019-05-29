@@ -1,9 +1,12 @@
-use std::net::{TcpListener, TcpStream};
-use std::io::{Write, ErrorKind};
-use std::io;
-use std::error::Error;
 use crate::obelisk::Obelisk;
 use crate::entities::player;
+use mio::Ready;
+use tokio::net::{TcpListener, TcpStream};
+use tokio::io::{Error, ErrorKind};
+use tokio::prelude::*;
+use std::net::SocketAddr;
+use std::sync::{Arc, RwLock};
+use std::mem;
 
 pub mod codec;
 mod login;
@@ -15,31 +18,28 @@ pub struct Header {
     id: i32
 }
 
-pub fn start(server: &Obelisk) {
-    let listener = TcpListener::bind("localhost:25565").unwrap();
+pub fn start(server: Arc<RwLock<Obelisk>>) {
+    let address = SocketAddr::new("127.0.0.1".parse().unwrap(), 25565);
+    let listener = TcpListener::bind(&address).expect("Unable to bind TcpListener");
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => handle_connection(server, stream),
-            Err(_) => ()
-        }
-    }
+    let network_loop = listener.incoming()
+        .for_each(move |socket| {
+            tokio::spawn(process(socket).then(|_| {
+                Ok(())
+            }));
+
+            Ok(())
+        }).map_err(|e| println!("{:?}", e));
+
+    tokio::run(network_loop);
 }
 
-fn handle_connection(server: &Obelisk, mut stream: TcpStream) {
-    match read_handshake(server, &mut stream) {
-        Ok(None) => (),
-        Ok(Some(player)) => {
-            match play::handle_play(&mut stream, server, &player) {
-                Ok(()) => (),
-                Err(error) => println!("TCP stream error: {}", error.description())
-            }
-        },
-        Err(error) => println!("TCP stream error: {}", error.description())
-    }
+fn process(stream: TcpStream) -> impl Future<Item = (), Error = Error> {
+    read_packet(stream)
 }
 
-fn read_handshake(server: &Obelisk, stream: &mut TcpStream) -> Result<Option<player::Player>, io::Error> {
+/*
+fn read_handshake(server: &Obelisk, stream: TcpStream) -> Result<Option<player::Player>, Error> {
     let _header = read_header(stream)?;
     let _version = codec::read_varint(stream)?;
     let _address = codec::read_string(stream)?;
@@ -51,11 +51,11 @@ fn read_handshake(server: &Obelisk, stream: &mut TcpStream) -> Result<Option<pla
     } else if state == 2 {
         return Ok(Some(login::handle_login(stream)?));
     } else {
-        return Err(io::Error::new(ErrorKind::InvalidData, "Handshake had invalid state"));
+        return Err(Error::new(ErrorKind::InvalidData, "Handshake had invalid state"));
     }
 }
 
-fn send_packet(stream: &mut TcpStream, id: i32, data: &[u8]) -> Result<(), io::Error> {
+fn send_packet(stream: &mut TcpStream, id: i32, data: &[u8]) -> Result<(), Error> {
     let mut packet = Vec::new();
     let id = codec::encode_varint(id);
     let length = codec::encode_varint((id.len() + data.len()) as i32);
@@ -66,7 +66,7 @@ fn send_packet(stream: &mut TcpStream, id: i32, data: &[u8]) -> Result<(), io::E
     Ok(stream.flush()?)
 }
 
-fn read_header(stream: &mut TcpStream) -> Result<Header, io::Error> {
+fn read_header(stream: &TcpStream) -> Result<Header, Error> {
     let length = codec::read_varint(stream)?;
     let (id, id_size) = codec::read_varint_size(stream)?;
 
@@ -74,4 +74,56 @@ fn read_header(stream: &mut TcpStream) -> Result<Header, io::Error> {
         length: length - id_size,
         id
     })
+}*/
+
+fn read_packet(mut socket: TcpStream) -> impl Future<Item = (), Error = Error> {
+    read_length(socket)
+        .map(|(socket, len)| {
+            println!("Received length: {}", len);
+    })
+}
+
+fn read_length(mut socket: TcpStream) -> impl Future<Item = (TcpStream, i32), Error = Error> {
+    FutureLength {
+        socket: Some(socket)
+    }
+}
+
+struct FutureLength {
+    socket: Option<TcpStream>
+}
+
+impl Future for FutureLength {
+    type Item = (TcpStream, i32);
+    type Error = Error;
+
+    fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
+        match &mut self.socket {
+            None => panic!("Used FutureLength twice!"),
+            Some(ref mut stream) => {
+                let mut buf = vec![0; 5];
+                futures::try_ready!(stream.poll_peek(&mut buf));
+
+                let mut varint_size = 0;
+                for b in buf {
+                    varint_size += 1;
+                    if b & 0b10000000 == 0 {
+                        break;
+                    }
+
+                    if varint_size == 5 {
+                        panic!("")
+                    }
+                }
+
+                let mut num_bytes = vec![0; varint_size];
+                futures::try_ready!(stream.poll_read(&mut num_bytes));
+                println!("{:?}", num_bytes);
+
+                let num = codec::read_varint(&mut num_bytes)?;
+                let socket = mem::replace(&mut self.socket, None).unwrap();
+                Ok(Async::Ready((socket, num)))
+            }
+        }
+    }
 }
