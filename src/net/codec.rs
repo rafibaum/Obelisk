@@ -91,26 +91,24 @@ pub fn encode_string(string: &str) -> Vec<u8> {
     encoded
 }
 
-pub fn read_long(bytes: &mut Vec<u8>) -> Result<i64, Error> {
+pub fn read_long(bytes: &mut Vec<u8>) -> i64 {
     let mut num_bytes = [0u8; 8];
     let mut byte_slice = bytes.drain(..8).into_iter();
     for i in 0..8 {
         num_bytes[i] = byte_slice.next().unwrap();
     }
 
-    let num = i64::from_be_bytes(num_bytes);
-    Ok(num)
+    i64::from_be_bytes(num_bytes)
 }
 
-pub fn read_ushort(bytes: &mut Vec<u8>) -> Result<u16, Error> {
+pub fn read_ushort(bytes: &mut Vec<u8>) -> u16 {
     let mut num_bytes = [0u8; 2];
     let mut byte_slice = bytes.drain(..2).into_iter();
     for i in 0..2 {
         num_bytes[i] = byte_slice.next().unwrap();
     }
 
-    let num = u16::from_be_bytes(num_bytes);
-    Ok(num)
+    u16::from_be_bytes(num_bytes)
 }
 
 pub fn read_varint(bytes: &mut Vec<u8>) -> Result<i32, Error> {

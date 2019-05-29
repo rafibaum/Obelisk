@@ -1,7 +1,4 @@
-/*use std::net::TcpStream;
-use std::io::Read;
-use std::io;
-use serde::Serialize;
+/*use serde::Serialize;
 use serde_json::json;
 use super::codec;
 use crate::obelisk::Obelisk;
@@ -52,5 +49,4 @@ fn send_status<'a>(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::E
     }).to_string());
     println!("Send status");
     super::send_packet(stream, 0x0, &response)
-}
-*/
+}*/
