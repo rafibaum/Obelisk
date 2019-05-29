@@ -5,8 +5,9 @@ use tokio::net::TcpStream;
 use tokio::io::{Error, ErrorKind};
 use tokio::io::AsyncRead;
 use tokio::prelude::Future;
+use std::convert::TryInto;
 
-/*pub fn encode_bool(val: bool) -> Vec<u8> {
+pub fn encode_bool(val: bool) -> Vec<u8> {
     if val {
         vec![1]
     } else {
@@ -90,24 +91,33 @@ pub fn encode_string(string: &str) -> Vec<u8> {
     encoded
 }
 
-pub fn read_long(stream: &mut TcpStream) -> Result<i64, Error> {
-    let mut buffer = [0; 8];
-    stream.read(&mut buffer)?;
-    Ok(i64::from_be_bytes(buffer))
+pub fn read_long(bytes: &mut Vec<u8>) -> Result<i64, Error> {
+    let mut num_bytes = [0u8; 8];
+    let mut byte_slice = bytes.drain(..8).into_iter();
+    for i in 0..8 {
+        num_bytes[i] = byte_slice.next().unwrap();
+    }
+
+    let num = i64::from_be_bytes(num_bytes);
+    Ok(num)
 }
 
-pub fn read_ushort(stream: &mut TcpStream) -> Result<u16, Error> {
-    let mut buffer = [0; 2];
-    stream.read(&mut buffer)?;
-    Ok(u16::from_be_bytes(buffer))
-}
-*/
+pub fn read_ushort(bytes: &mut Vec<u8>) -> Result<u16, Error> {
+    let mut num_bytes = [0u8; 2];
+    let mut byte_slice = bytes.drain(..2).into_iter();
+    for i in 0..2 {
+        num_bytes[i] = byte_slice.next().unwrap();
+    }
 
-pub fn read_varint(bytes: &mut [u8]) -> Result<i32, Error> {
+    let num = u16::from_be_bytes(num_bytes);
+    Ok(num)
+}
+
+pub fn read_varint(bytes: &mut Vec<u8>) -> Result<i32, Error> {
     let mut result: i32 = 0;
     let mut bytes_read = 0;
 
-    for byte in bytes {
+    for byte in bytes.iter() {
         let value = (*byte & 0b01111111) as i32;
         result |= value << (7 * bytes_read);
         bytes_read += 1;
@@ -121,18 +131,22 @@ pub fn read_varint(bytes: &mut [u8]) -> Result<i32, Error> {
         }
     }
 
+    bytes.drain(..bytes_read);
+
     Ok(result)
 }
 
-/*
-pub fn read_string(stream: &mut TcpStream) -> Result<String, Error> {
-    let length = read_varint(stream)? as usize;
-    let mut buffer = vec![0; length];
 
-    stream.read(&mut buffer)?;
-    match String::from_utf8(buffer) {
+pub fn read_string(bytes: &mut Vec<u8>) -> Result<String, Error> {
+    let length = read_varint(bytes)? as usize;
+    let drained_bytes = bytes.drain(..length);
+    let mut char_vec = Vec::new();
+    for b in drained_bytes {
+        char_vec.push(b);
+    }
+
+    match String::from_utf8(char_vec) {
         Ok(s) => Ok(s),
         Err(_) => Err(Error::new(ErrorKind::InvalidData, "String had invalid data"))
     }
 }
-*/
