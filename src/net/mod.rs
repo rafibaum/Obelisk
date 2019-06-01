@@ -41,7 +41,6 @@ pub fn start(server: Arc<RwLock<Obelisk>>) {
     let network_loop = listener.incoming()
         .for_each(move |socket| {
             let framed = Framed::new(socket, PacketCodec::new());
-            println!("starting");
             tokio::spawn(PlayerSocket {
                 server: server.clone(),
                 stream: framed,
@@ -136,37 +135,38 @@ pub struct PlayerSocket {
     output: VecDeque<Packet>
 }
 
-impl Drop for PlayerSocket {
-    fn drop(&mut self) {
-        println!("dropping");
-    }
-}
-
 impl Future for PlayerSocket {
     type Item = ();
     type Error = Error;
 
     fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
         // Check if a packet is available to read
+        let mut none = false;
+        loop {
+            match self.stream.poll()? {
+                Async::Ready(Some(mut packet)) => {
+                    match self.state {
+                        NetState::Handshake => {
+                            self.read_handshake(&mut packet)?;
+                        }
+                        ,
+                        NetState::Status => {
+                            status::read_status(self, &packet);
+                        },
+                        NetState::Login => {
 
-        while let Async::Ready(Some(mut packet)) = self.stream.poll()? {
+                        },
+                        NetState::Play => {
 
-            match self.state {
-                NetState::Handshake => {
-                    self.read_handshake(&mut packet)?;
-                }
-                ,
-                NetState::Status => {
-                    status::read_status(self, &packet);
+                        }
+                    };
                 },
-                NetState::Login => {
-
+                Async::Ready(None) => {
+                    none = true;
+                    break
                 },
-                NetState::Play => {
-
-                }
-            };
-
+                Async::NotReady => break
+            }
         }
 
 
@@ -182,7 +182,11 @@ impl Future for PlayerSocket {
 
         futures::try_ready!(self.stream.poll_complete());
 
-        Ok(Async::NotReady)
+        if (none) {
+            Ok(Async::Ready(()))
+        } else {
+            Ok(Async::NotReady)
+        }
     }
 }
 
