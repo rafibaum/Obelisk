@@ -2,15 +2,18 @@ use super::codec;
 use super::{Packet, PlayerSocket};
 use serde::Serialize;
 use serde_json::json;
+use std::io::{Error, ErrorKind};
 
-pub fn read_status(socket: &mut PlayerSocket, packet: &Packet) {
+pub fn handle_status(socket: &mut PlayerSocket, packet: &Packet) -> Result<(), Error> {
     if packet.id == 0 {
         send_status(socket);
     } else if packet.id == 1 {
         send_ping(socket, packet);
     } else {
-        unimplemented!()
+        return Err(Error::new(ErrorKind::InvalidData, "Invalid status packet id"));
     }
+
+    Ok(())
 }
 
 fn send_ping(socket: &mut PlayerSocket, packet: &Packet) {

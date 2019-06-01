@@ -146,9 +146,10 @@ impl Future for PlayerSocket {
                             self.read_handshake(&mut packet)?;
                         }
                         NetState::Status => {
-                            status::read_status(self, &packet);
+                            status::handle_status(self, &packet)?;
                         }
-                        NetState::Login => {}
+                        NetState::Login => {
+                        }
                         NetState::Play => {}
                     };
                 }
