@@ -6,20 +6,20 @@ pub struct World {
     pub hardcore: bool,
     pub dimension: Dimension,
     pub difficulty: Difficulty,
-    pub level_type: LevelType
+    pub level_type: LevelType,
 }
 
 pub struct Vector {
     pub x: f64,
     pub y: f64,
-    pub z: f64
+    pub z: f64,
 }
 
 pub struct Location {
     pub x: f64,
     pub y: f64,
     pub z: f64,
-    pub world: Weak<World>
+    pub world: Weak<World>,
 }
 
 impl Location {
@@ -27,7 +27,7 @@ impl Location {
         Vector {
             x: self.x,
             y: self.y,
-            z: self.z
+            z: self.z,
         }
     }
 }
@@ -44,7 +44,7 @@ pub enum Difficulty {
     Peaceful,
     Easy,
     Normal,
-    Hard
+    Hard,
 }
 
 #[derive(Copy, Clone)]
@@ -53,7 +53,7 @@ pub enum LevelType {
     Flat,
     LargeBiomes,
     Amplified,
-    Default_1_1
+    Default_1_1,
 }
 
 impl LevelType {
@@ -63,7 +63,7 @@ impl LevelType {
             LevelType::Flat => "flat",
             LevelType::LargeBiomes => "largeBiomes",
             LevelType::Amplified => "amplified",
-            LevelType::Default_1_1 => "default_1_1"
+            LevelType::Default_1_1 => "default_1_1",
         }
     }
 }

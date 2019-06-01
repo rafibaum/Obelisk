@@ -1,6 +1,6 @@
-use std::mem::transmute;
-use byteorder::{BigEndian, WriteBytesExt};
 use crate::world;
+use byteorder::{BigEndian, WriteBytesExt};
+use std::mem::transmute;
 use tokio::io::{Error, ErrorKind};
 
 pub fn encode_bool(val: bool) -> Vec<u8> {
@@ -24,7 +24,8 @@ pub fn encode_ubyte(num: u8) -> Vec<u8> {
 
 pub fn encode_double(num: f64) -> Vec<u8> {
     let mut val = [0u8; 8];
-    val.as_mut().write_f64::<BigEndian>(num)
+    val.as_mut()
+        .write_f64::<BigEndian>(num)
         .expect("Unable to encode double");
 
     val.to_vec()
@@ -32,7 +33,8 @@ pub fn encode_double(num: f64) -> Vec<u8> {
 
 pub fn encode_float(num: f32) -> Vec<u8> {
     let mut val = [0u8; 4];
-    val.as_mut().write_f32::<BigEndian>(num)
+    val.as_mut()
+        .write_f32::<BigEndian>(num)
         .expect("Unable to encode float");
 
     val.to_vec()
@@ -71,9 +73,9 @@ pub fn encode_varint(mut num: i32) -> Vec<u8> {
 }
 
 pub fn encode_position(vector: &world::Vector) -> Vec<u8> {
-    let value: i64 = ((vector.x as i64 & 0x3FFFFFF) << 38) |
-        ((vector.y as i64 & 0xFFF) << 26) |
-        (vector.z as i64 & 0x3FFFFFF);
+    let value: i64 = ((vector.x as i64 & 0x3FFFFFF) << 38)
+        | ((vector.y as i64 & 0xFFF) << 26)
+        | (vector.z as i64 & 0x3FFFFFF);
 
     encode_long(value)
 }
@@ -130,7 +132,6 @@ pub fn read_varint(bytes: &mut Vec<u8>) -> Result<i32, Error> {
     Ok(result)
 }
 
-
 pub fn read_string(bytes: &mut Vec<u8>) -> Result<String, Error> {
     let length = read_varint(bytes)? as usize;
     let drained_bytes = bytes.drain(..length);
@@ -141,6 +142,9 @@ pub fn read_string(bytes: &mut Vec<u8>) -> Result<String, Error> {
 
     match String::from_utf8(char_vec) {
         Ok(s) => Ok(s),
-        Err(_) => Err(Error::new(ErrorKind::InvalidData, "String had invalid data"))
+        Err(_) => Err(Error::new(
+            ErrorKind::InvalidData,
+            "String had invalid data",
+        )),
     }
 }

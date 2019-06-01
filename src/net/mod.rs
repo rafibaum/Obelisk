@@ -1,13 +1,13 @@
 use crate::obelisk::Obelisk;
-use bytes::{BytesMut, BufMut};
-use tokio::codec::{Decoder, Encoder, Framed};
-use tokio::net::{TcpListener, TcpStream};
-use tokio::io::{Error, ErrorKind};
-use tokio::prelude::*;
-use tokio::prelude::AsyncSink::{Ready, NotReady};
+use bytes::{BufMut, BytesMut};
+use std::collections::VecDeque;
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
-use std::collections::VecDeque;
+use tokio::codec::{Decoder, Encoder, Framed};
+use tokio::io::{Error, ErrorKind};
+use tokio::net::{TcpListener, TcpStream};
+use tokio::prelude::AsyncSink::{NotReady, Ready};
+use tokio::prelude::*;
 
 pub mod codec;
 mod login;
@@ -16,15 +16,12 @@ mod status;
 
 pub struct Packet {
     id: i32,
-    data: Vec<u8>
+    data: Vec<u8>,
 }
 
 impl Packet {
     pub fn new(id: i32, data: Vec<u8>) -> Packet {
-        Packet {
-            id,
-            data
-        }
+        Packet { id, data }
     }
 }
 
@@ -32,18 +29,23 @@ pub fn start(server: Arc<RwLock<Obelisk>>) {
     let address = SocketAddr::new("127.0.0.1".parse().unwrap(), 25565);
     let listener = TcpListener::bind(&address).expect("Unable to bind TcpListener");
 
-    let network_loop = listener.incoming()
+    let network_loop = listener
+        .incoming()
         .for_each(move |socket| {
             let framed = Framed::new(socket, PacketCodec::new());
-            tokio::spawn(PlayerSocket {
-                server: server.clone(),
-                stream: framed,
-                state: NetState::Handshake,
-                output: VecDeque::new()
-            }.map_err(|e| println!("connection error: {:?}", e)));
+            tokio::spawn(
+                PlayerSocket {
+                    server: server.clone(),
+                    stream: framed,
+                    state: NetState::Handshake,
+                    output: VecDeque::new(),
+                }
+                .map_err(|e| println!("connection error: {:?}", e)),
+            );
 
             Ok(())
-        }).map_err(|e| println!("accept error: {:?}", e));
+        })
+        .map_err(|e| println!("accept error: {:?}", e));
 
     tokio::run(network_loop);
 }
@@ -85,14 +87,14 @@ impl Decoder for PacketCodec {
 
         if bytes_missing == 0 {
             let id = codec::read_varint(&mut bytes)?;
-            Ok(Some(Packet {
-                id,
-                data: bytes
-            }))
+            Ok(Some(Packet { id, data: bytes }))
         } else if bytes_missing > 0 {
             Ok(None)
         } else {
-            Err(Error::new(ErrorKind::InvalidData, "Data longer than packet length"))
+            Err(Error::new(
+                ErrorKind::InvalidData,
+                "Data longer than packet length",
+            ))
         }
     }
 }
@@ -119,14 +121,14 @@ enum NetState {
     Handshake,
     Status,
     Login,
-    Play
+    Play,
 }
 
 pub struct PlayerSocket {
     server: Arc<RwLock<Obelisk>>,
     stream: Framed<TcpStream, PacketCodec>,
     state: NetState,
-    output: VecDeque<Packet>
+    output: VecDeque<Packet>,
 }
 
 impl Future for PlayerSocket {
@@ -143,34 +145,28 @@ impl Future for PlayerSocket {
                         NetState::Handshake => {
                             self.read_handshake(&mut packet)?;
                         }
-                        ,
                         NetState::Status => {
                             status::read_status(self, &packet);
-                        },
-                        NetState::Login => {
-
-                        },
-                        NetState::Play => {
-
                         }
+                        NetState::Login => {}
+                        NetState::Play => {}
                     };
-                },
+                }
                 Async::Ready(None) => {
                     none = true;
-                    break
-                },
-                Async::NotReady => break
+                    break;
+                }
+                Async::NotReady => break,
             }
         }
-
 
         while let Some(packet) = self.output.pop_front() {
             match self.stream.start_send(packet)? {
                 NotReady(packet) => {
                     self.output.push_front(packet);
                     break;
-                },
-                Ready => ()
+                }
+                Ready => (),
             }
         }
 

@@ -1,7 +1,7 @@
-use std::sync::{Arc, RwLock};
-use obelisk::Obelisk;
 use crate::entities::player;
 use crate::world::Location;
+use obelisk::Obelisk;
+use std::sync::{Arc, RwLock};
 
 pub mod entities;
 pub mod net;
@@ -13,14 +13,14 @@ fn main() {
         hardcore: false,
         dimension: world::Dimension::Overworld,
         difficulty: world::Difficulty::Peaceful,
-        level_type: world::LevelType::Default
+        level_type: world::LevelType::Default,
     });
 
     let spawn_location = Location {
         x: 0.0,
         y: 128.0,
         z: 0.0,
-        world: Arc::downgrade(&world)
+        world: Arc::downgrade(&world),
     };
 
     let mut worlds = Vec::new();
@@ -30,7 +30,7 @@ fn main() {
         players: Vec::new(),
         max_players: 10,
         worlds,
-        spawn_location
+        spawn_location,
     };
 
     let mut obelisk = Arc::new(RwLock::new(obelisk));
@@ -50,6 +50,6 @@ pub mod obelisk {
         pub players: Vec<player::Player>,
         pub max_players: u32,
         pub worlds: Vec<Arc<world::World>>,
-        pub spawn_location: world::Location
+        pub spawn_location: world::Location,
     }
 }
