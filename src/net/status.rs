@@ -1,39 +1,46 @@
-/*use serde::Serialize;
+use serde::Serialize;
 use serde_json::json;
 use super::codec;
+use super::{PlayerSocket, Packet};
 use crate::obelisk::Obelisk;
+use tokio::io::{Error, ErrorKind};
+use tokio::prelude::Future;
+use futures::future;
+use futures::future::FutureResult;
 
-pub fn read_status(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::Error> {
-    loop {
-        let header = super::read_header(stream)?;
-        println!("Received id: {}", header.id);
-        if header.id == 0 {
-            send_status(server, stream)?
-        } else if header.id == 1 {
-            send_ping(stream)?
-        }
+pub fn read_status(socket: &mut PlayerSocket, packet: &Packet) {
+    if packet.id == 0 {
+        send_status(socket, packet);
+    } else if packet.id == 1 {
+        send_ping(socket, packet);
+    } else {
+        unimplemented!()
     }
 }
 
-fn send_ping(stream: &mut TcpStream) -> Result<(), io::Error> {
-    let mut payload = [0; 8];
-    stream.read(&mut payload).unwrap();
-    super::send_packet(stream, 0x1, &payload)
+fn send_ping(socket: &mut PlayerSocket, packet: &Packet) {
+    let mut payload = packet.data.clone();
+    socket.send_packet(0x1, payload);
 }
 
-fn send_status<'a>(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::Error> {
+fn send_status<'a>(socket: &mut PlayerSocket, packet: &Packet) {
     #[derive(Serialize)]
     struct SamplePlayer<'a> {
         name: &'a str,
         id: String
     }
 
-    let player_sample: Vec<SamplePlayer> = server.players.iter().take(5).map(|player| SamplePlayer {
-        name: &player.username,
-        id: player.uuid.to_hyphenated().to_string()
-    }).collect();
+    let response: Vec<u8>;
 
-    let response = codec::encode_string(&json!({
+    {
+        let server = socket.server.read().unwrap();
+
+        let player_sample: Vec<SamplePlayer> = server.players.iter().take(5).map(|player| SamplePlayer {
+            name: &player.username,
+            id: player.uuid.to_hyphenated().to_string()
+        }).collect();
+
+        response = codec::encode_string(&json!({
     "version": {
         "name": "1.13.2",
         "protocol": 404
@@ -47,6 +54,7 @@ fn send_status<'a>(server: &Obelisk, stream: &mut TcpStream) -> Result<(), io::E
         "text": "Hello world"
     }
     }).to_string());
-    println!("Send status");
-    super::send_packet(stream, 0x0, &response)
-}*/
+    }
+
+    socket.send_packet(0x0, response);
+}

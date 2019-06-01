@@ -35,7 +35,7 @@ fn main() {
 
     let mut obelisk = Arc::new(RwLock::new(obelisk));
 
-    //net::start(obelisk.clone());
+    net::start(obelisk.clone());
 }
 
 pub mod obelisk {
