@@ -1,4 +1,4 @@
-use crate::obelisk::Obelisk;
+use crate::Obelisk;
 use bytes::{BufMut, BytesMut};
 use std::collections::VecDeque;
 use std::net::SocketAddr;
@@ -8,6 +8,7 @@ use tokio::io::{Error, ErrorKind};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::AsyncSink::{NotReady, Ready};
 use tokio::prelude::*;
+use uuid::Uuid;
 
 pub mod codec;
 mod login;
@@ -121,7 +122,7 @@ enum NetState {
     Handshake,
     Status,
     Login,
-    Play,
+    Play(Uuid),
 }
 
 pub struct PlayerSocket {
@@ -149,8 +150,15 @@ impl Future for PlayerSocket {
                             status::handle_status(self, &packet)?;
                         }
                         NetState::Login => {
+                            match login::handle_login(self, &mut packet)? {
+                                Some(uuid) => {
+                                    play::spawn(self, &uuid)?;
+                                    self.state = NetState::Play(uuid);
+                                }
+                                None => (),
+                            };
                         }
-                        NetState::Play => {}
+                        NetState::Play(uuid) => {}
                     };
                 }
                 Async::Ready(None) => {
@@ -201,5 +209,36 @@ impl PlayerSocket {
         }
 
         Ok(())
+    }
+}
+
+pub struct PluginMessage {
+    namespace: String,
+    channel: String,
+    data: Vec<u8>,
+}
+
+impl Into<Packet> for PluginMessage {
+    fn into(mut self) -> Packet {
+        self.namespace.push_str(":");
+        self.namespace.push_str(&self.channel);
+
+        let mut data = codec::encode_string(&self.namespace);
+        data.append(&mut self.data);
+        Packet::new(0x19, data)
+    }
+}
+
+impl PluginMessage {
+    fn new(namespace: String, channel: String, data: Vec<u8>) -> PluginMessage {
+        PluginMessage {
+            namespace,
+            channel,
+            data,
+        }
+    }
+
+    fn new_minecraft(channel: String, data: Vec<u8>) -> PluginMessage {
+        PluginMessage::new(String::from("minecraft"), channel, data)
     }
 }

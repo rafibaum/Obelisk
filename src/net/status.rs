@@ -10,14 +10,17 @@ pub fn handle_status(socket: &mut PlayerSocket, packet: &Packet) -> Result<(), E
     } else if packet.id == 1 {
         send_ping(socket, packet);
     } else {
-        return Err(Error::new(ErrorKind::InvalidData, "Invalid status packet id"));
+        return Err(Error::new(
+            ErrorKind::InvalidData,
+            "Invalid status packet id",
+        ));
     }
 
     Ok(())
 }
 
 fn send_ping(socket: &mut PlayerSocket, packet: &Packet) {
-    let mut payload = packet.data.clone();
+    let payload = packet.data.clone();
     socket.send_packet(0x1, payload);
 }
 
@@ -37,9 +40,9 @@ fn send_status<'a>(socket: &mut PlayerSocket) {
             .players
             .iter()
             .take(5)
-            .map(|player| SamplePlayer {
+            .map(|(uuid, player)| SamplePlayer {
                 name: &player.username,
-                id: player.uuid.to_hyphenated().to_string(),
+                id: uuid.to_hyphenated().to_string(),
             })
             .collect();
 

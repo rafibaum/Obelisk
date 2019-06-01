@@ -15,6 +15,7 @@ pub struct Vector {
     pub z: f64,
 }
 
+#[derive(Clone)]
 pub struct Location {
     pub x: f64,
     pub y: f64,

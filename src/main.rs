@@ -1,11 +1,23 @@
 use crate::entities::player;
+use crate::entities::player::Player;
 use crate::world::Location;
-use obelisk::Obelisk;
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+use uuid::Uuid;
 
 pub mod entities;
 pub mod net;
 pub mod world;
+
+pub const VERSION: &str = "1.13.2";
+pub const PROTOCOL: u16 = 404;
+
+pub struct Obelisk {
+    pub players: HashMap<Uuid, Player>,
+    pub max_players: u32,
+    pub worlds: Vec<Arc<world::World>>,
+    pub spawn_location: world::Location,
+}
 
 fn main() {
     let world = Arc::new(world::World {
@@ -27,7 +39,7 @@ fn main() {
     worlds.push(world);
 
     let mut obelisk = Obelisk {
-        players: Vec::new(),
+        players: HashMap::new(),
         max_players: 10,
         worlds,
         spawn_location,
@@ -38,18 +50,18 @@ fn main() {
     net::start(obelisk.clone());
 }
 
-pub mod obelisk {
-    use crate::entities::player;
-    use crate::world;
-    use std::sync::Arc;
+impl Obelisk {
+    pub fn create_player(&mut self, uuid: Uuid, username: String) -> &Player {
+        self.players.insert(
+            uuid.clone(),
+            Player {
+                uuid: uuid.clone(),
+                username,
+                entity_id: rand::random(),
+                location: self.spawn_location.clone(),
+            },
+        );
 
-    pub const VERSION: &str = "1.13.2";
-    pub const PROTOCOL: u16 = 404;
-
-    pub struct Obelisk {
-        pub players: Vec<player::Player>,
-        pub max_players: u32,
-        pub worlds: Vec<Arc<world::World>>,
-        pub spawn_location: world::Location,
+        self.players.get(&uuid).unwrap()
     }
 }
