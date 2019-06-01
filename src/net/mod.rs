@@ -1,7 +1,5 @@
 use crate::obelisk::Obelisk;
-use crate::entities::player;
 use bytes::{BytesMut, BufMut};
-use futures::future::FutureResult;
 use tokio::codec::{Decoder, Encoder, Framed};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{Error, ErrorKind};
@@ -9,10 +7,6 @@ use tokio::prelude::*;
 use tokio::prelude::AsyncSink::{Ready, NotReady};
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
-use std::mem;
-use std::convert::TryInto;
-use std::slice::Iter;
-use futures::sink::SendAll;
 use std::collections::VecDeque;
 
 pub mod codec;
@@ -182,7 +176,7 @@ impl Future for PlayerSocket {
 
         futures::try_ready!(self.stream.poll_complete());
 
-        if (none) {
+        if none {
             Ok(Async::Ready(()))
         } else {
             Ok(Async::NotReady)
@@ -194,14 +188,6 @@ impl PlayerSocket {
     pub fn send_packet(&mut self, id: i32, data: Vec<u8>) {
         self.output.push_back(Packet::new(id, data));
     }
-
-    /*fn send_packet_all(&mut self, data: Vec<Packet>) -> Box<Future<Item = (), Error = Error> + Send> {
-        let packet_stream = stream::iter_ok::<_, Error>(data);
-        let future = packet_stream
-            .for_each(|packet| self.stream.start_send(packet).map(|_| ()))
-            .and_then(|_| self.stream.poll_complete()).map(|test| ());
-        Box::new(future)
-    }*/
 
     fn read_handshake(&mut self, packet: &mut Packet) -> Result<(), Error> {
         let _version = codec::read_varint(&mut packet.data)?;

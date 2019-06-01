@@ -40,7 +40,6 @@ fn main() {
 
 pub mod obelisk {
     use crate::entities::player;
-    use crate::net;
     use crate::world;
     use std::sync::Arc;
 
