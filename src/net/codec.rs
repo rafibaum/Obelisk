@@ -1,4 +1,5 @@
 use crate::world;
+use crate::world::chunks::{ChunkColumn, ChunkSection};
 use byteorder::{BigEndian, WriteBytesExt};
 use std::mem::transmute;
 use tokio::io::{Error, ErrorKind};
@@ -87,6 +88,54 @@ pub fn encode_string(string: &str) -> Vec<u8> {
     encoded.extend_from_slice(bytes);
 
     encoded
+}
+
+pub fn encode_chunk_column(column: &ChunkColumn) {
+    let mut data = Vec::new();
+    data.append(&mut encode_int(column.x));
+    data.append(&mut encode_int(column.z));
+    data.append(&mut encode_bool(true)); // Full chunk
+
+    let mut mask: u8 = 0;
+    for section in &column.sections {
+        mask >>= 1;
+        match section {
+            Some(_) => mask |= 0b10000000,
+            None => (),
+        }
+    }
+    data.append(&mut encode_ubyte(mask));
+}
+
+pub fn encode_chunk_section(section: &ChunkSection) {
+    let mut data = Vec::new();
+    data.append(&mut encode_ubyte(14)); // Bits per block
+    //Empty palette for direct usage
+
+}
+
+pub fn encode_ids(ids: Vec<u32>, size: i32) -> Vec<u64> {
+    let mut data = Vec::new();
+    let mut offset = 64 - size;
+    let mut long: u64 = 0;
+    for id in ids {
+        let id = id as u64;
+        if offset >= 0 {
+            long |= id << offset as u64;
+            offset -= size;
+        } else {
+            long |= id >> -offset as u64;
+            data.push(long);
+            offset += 64;
+            long = id.overflowing_shl(offset as u32).0;
+        }
+    }
+
+    if long != 0 {
+        data.push(long);
+    }
+
+    data
 }
 
 pub fn read_long(bytes: &mut Vec<u8>) -> i64 {

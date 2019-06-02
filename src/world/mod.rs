@@ -1,6 +1,9 @@
 use crate::entities::player;
 use std::sync::Weak;
 
+pub mod chunks;
+pub mod palette;
+
 pub struct World {
     pub gamemode: player::Gamemode,
     pub hardcore: bool,
