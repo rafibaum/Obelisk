@@ -1,6 +1,6 @@
 use super::codec;
 use super::PlayerSocket;
-use tokio::io::{Error};
+use tokio::io::Error;
 use uuid::Uuid;
 
 pub fn handle_play(socket: &mut PlayerSocket) -> Result<(), Error> {
@@ -18,7 +18,6 @@ pub fn spawn(socket: &mut PlayerSocket, uuid: &Uuid) -> Result<(), Error> {
     Ok(())
 }
 
-
 fn send_join_game(socket: &mut PlayerSocket, uuid: &Uuid) {
     let mut data = Vec::new();
 
@@ -28,7 +27,11 @@ fn send_join_game(socket: &mut PlayerSocket, uuid: &Uuid) {
 
         data.append(&mut codec::encode_int(player.entity_id));
 
-        let spawn_world = server.spawn_location.world.upgrade().expect("Spawn world does not exist");
+        let spawn_world = server
+            .spawn_location
+            .world
+            .upgrade()
+            .expect("Spawn world does not exist");
         let mut gamemode = spawn_world.gamemode as u8;
 
         if spawn_world.hardcore {
@@ -39,7 +42,9 @@ fn send_join_game(socket: &mut PlayerSocket, uuid: &Uuid) {
         data.append(&mut codec::encode_int(spawn_world.dimension as i32));
         data.append(&mut codec::encode_ubyte(spawn_world.difficulty as u8));
         data.append(&mut codec::encode_ubyte(0)); // Ignored max players
-        data.append(&mut codec::encode_string(spawn_world.level_type.to_string()));
+        data.append(&mut codec::encode_string(
+            spawn_world.level_type.to_string(),
+        ));
         data.append(&mut codec::encode_bool(false)); // Optional debug values
     }
 

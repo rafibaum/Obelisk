@@ -12,7 +12,11 @@ pub fn handle_login(socket: &mut PlayerSocket, packet: &mut Packet) -> Result<Op
         println!("Received connection from {}", username);
         let uuid = Uuid::new_v5(&Uuid::NAMESPACE_DNS, username.as_bytes());
 
-        let player = socket.server.write().unwrap().create_player(uuid.clone(), username.clone());
+        let player = socket
+            .server
+            .write()
+            .unwrap()
+            .create_player(uuid.clone(), username.clone());
         send_login_success(socket, &uuid, &username);
 
         Ok(Some(uuid))

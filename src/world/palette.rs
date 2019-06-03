@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use serde::Deserialize;
-use serde_json::{Value, Map};
+use serde_json::{Map, Value};
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 pub struct PaletteEntry {
@@ -18,5 +18,5 @@ pub struct PaletteState {
     pub id: u32,
 
     #[serde(default)]
-    pub default: bool
+    pub default: bool,
 }

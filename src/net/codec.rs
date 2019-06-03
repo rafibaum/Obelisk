@@ -110,8 +110,7 @@ pub fn encode_chunk_column(column: &ChunkColumn) {
 pub fn encode_chunk_section(section: &ChunkSection) {
     let mut data = Vec::new();
     data.append(&mut encode_ubyte(14)); // Bits per block
-    //Empty palette for direct usage
-
+                                        //Empty palette for direct usage
 }
 
 pub fn encode_ids(ids: Vec<u32>, size: i32) -> Vec<u64> {

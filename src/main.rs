@@ -1,11 +1,11 @@
 use crate::entities::player;
 use crate::entities::player::Player;
-use crate::world::Location;
 use crate::world::palette::PaletteEntry;
+use crate::world::Location;
 use std::collections::HashMap;
+use std::fs;
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use std::fs;
 
 pub mod entities;
 pub mod net;
@@ -52,7 +52,8 @@ fn main() {
     net::start(obelisk.clone());
 
     let palette_json = fs::read_to_string("/home/rafi/blocks.json").expect("Could not read file");
-    let palette: HashMap<String, PaletteEntry> = serde_json::from_str(&palette_json).expect("Failed to parse json");
+    let palette: HashMap<String, PaletteEntry> =
+        serde_json::from_str(&palette_json).expect("Failed to parse json");
 }
 
 impl Obelisk {
