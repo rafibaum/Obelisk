@@ -1,4 +1,5 @@
 use crate::world;
+use crate::world::{Dimension, World};
 use crate::world::chunks::{ChunkColumn, ChunkSection};
 use byteorder::{BigEndian, WriteBytesExt};
 use std::mem::transmute;
@@ -17,6 +18,10 @@ pub fn encode_byte(num: i8) -> Vec<u8> {
         let bytes: [u8; 1] = transmute(num.to_be());
         bytes.to_vec()
     }
+}
+
+pub fn encode_byte_pair(first: u8, second: u8) -> u8 {
+    first.overflowing_shl(4).0 | second
 }
 
 pub fn encode_ubyte(num: u8) -> Vec<u8> {
@@ -90,48 +95,117 @@ pub fn encode_string(string: &str) -> Vec<u8> {
     encoded
 }
 
-pub fn encode_chunk_column(column: &ChunkColumn) {
+pub fn encode_chunk_column(world: &World, column: &ChunkColumn) {
     let mut data = Vec::new();
     data.append(&mut encode_int(column.x));
     data.append(&mut encode_int(column.z));
     data.append(&mut encode_bool(true)); // Full chunk
 
     let mut mask: u8 = 0;
+    let mut section_data = Vec::new();
     for section in &column.sections {
         mask >>= 1;
         match section {
-            Some(_) => mask |= 0b10000000,
+            Some(section) => {
+                mask |= 0b10000000;
+                section_data.append(&mut encode_chunk_section(world, section));
+                }
             None => (),
         }
     }
     data.append(&mut encode_ubyte(mask));
+
+    // Biome data
+    section_data.reserve(1024);
+    for _ in 0..256 {
+        section_data.append(&mut encode_int(0));
+    }
+
+    data.append(&mut encode_varint(section_data.len() as i32));
+    data.append(&mut section_data);
+    data.append(&mut encode_varint(0)); // No block entites
 }
 
-pub fn encode_chunk_section(section: &ChunkSection) {
+pub fn encode_chunk_section(world: &World, section: &ChunkSection) -> Vec<u8> {
     let mut data = Vec::new();
     data.append(&mut encode_ubyte(14)); // Bits per block
-                                        //Empty palette for direct usage
+    //Empty palette for direct usage
+    let mut ids = Vec::with_capacity(4096);
+    let mut block_light = Vec::with_capacity(2048);
+    let mut first = None;
+    if world.dimension == Dimension::Overworld {
+        let mut sky_light = Vec::with_capacity(2048);
+        let mut first_sky = None;
+        for plane in &section.blocks {
+            for line in plane {
+                for block in line {
+                    ids.push(block.id);
+                    match first {
+                        None => {
+                            first = Some(block.block_light);
+                            first_sky = Some(first_sky.unwrap());
+                        }
+                        Some(_) => {
+                            block_light.push(encode_byte_pair(first.unwrap(), block.block_light));
+                            sky_light.push(encode_byte_pair(first_sky.unwrap(), block.sky_light.unwrap()));
+                            first = None;
+                            first_sky = None;
+                        }
+                    }
+                }
+            }
+        }
+        let mut ids = encode_ids(ids, 14);
+        data.append(&mut encode_varint(ids.len() as i32));
+        data.append(&mut ids);
+        data.append(&mut block_light);
+        data.append(&mut sky_light);
+    } else {
+        for plane in &section.blocks {
+            for line in plane {
+                for block in line {
+                    ids.push(block.id);
+                    match first {
+                        None => {
+                            first = Some(block.block_light);
+                        }
+                        Some(_) => {
+                            block_light.push(encode_byte_pair(first.unwrap(), block.block_light));
+                            first = None;
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut ids = encode_ids(ids, 14);
+        data.append(&mut encode_varint(ids.len() as i32));
+        data.append(&mut ids);
+        data.append(&mut block_light);
+    }
+
+    data
 }
 
-pub fn encode_ids(ids: Vec<u32>, size: i32) -> Vec<u64> {
-    let mut data = Vec::new();
+pub fn encode_ids(ids: Vec<u32>, size: i32) -> Vec<u8> {
+    let mut data = Vec::with_capacity((ids.len() * 14 / 64 + 1) * 8);
     let mut offset = 64 - size;
-    let mut long: u64 = 0;
+    let mut long: i64 = 0;
     for id in ids {
-        let id = id as u64;
+        let id = id as i64;
         if offset >= 0 {
-            long |= id << offset as u64;
+            long |= id << offset as i64;
             offset -= size;
         } else {
-            long |= id >> -offset as u64;
-            data.push(long);
+            long |= id >> -offset as i64;
+            data.append(&mut encode_long(long));
             offset += 64;
             long = id.overflowing_shl(offset as u32).0;
         }
     }
 
     if long != 0 {
-        data.push(long);
+        data.append(&mut encode_long(long));
     }
 
     data

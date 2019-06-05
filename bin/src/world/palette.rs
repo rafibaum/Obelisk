@@ -20,3 +20,7 @@ pub struct PaletteState {
     #[serde(default)]
     pub default: bool,
 }
+
+pub fn generate_palette(json_str: &str) {
+
+}

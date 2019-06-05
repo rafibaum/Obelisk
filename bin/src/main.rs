@@ -28,6 +28,7 @@ fn main() {
         dimension: world::Dimension::Overworld,
         difficulty: world::Difficulty::Peaceful,
         level_type: world::LevelType::Default,
+        columns: HashMap::new(),
     });
 
     let spawn_location = Location {

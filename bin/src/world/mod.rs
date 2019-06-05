@@ -1,3 +1,6 @@
+use crate::world::chunks::Column;
+use std::collections::HashMap;
+use crate::world::chunks::ChunkColumn;
 use crate::entities::player;
 use std::sync::Weak;
 
@@ -10,6 +13,13 @@ pub struct World {
     pub dimension: Dimension,
     pub difficulty: Difficulty,
     pub level_type: LevelType,
+    pub columns: HashMap<Column, ChunkColumn>
+}
+
+impl World {
+    pub fn get_column(&self, column: &Column) {
+        
+    }
 }
 
 pub struct Vector {
@@ -36,7 +46,17 @@ impl Location {
     }
 }
 
-#[derive(Copy, Clone)]
+impl Into<Vector> for Location {
+    fn into(self) -> Vector {
+        Vector {
+            x: self.x,
+            y: self.y,
+            z: self.z,
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
 pub enum Dimension {
     Overworld = 0,
     End = 1,
