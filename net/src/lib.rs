@@ -105,7 +105,7 @@ impl MCPacketCodec for f64 {
     }
 }
 
-/*macro_rules! variable_int_codec {
+macro_rules! variable_int_codec {
     ($Type:ident, $max_size:expr) => {
         impl MCVariablePacketCodec for $Type {
             fn to_mc_variable_bytes(&self) -> Vec<u8> {
@@ -153,54 +153,10 @@ impl MCPacketCodec for f64 {
             }
         }
     };
-}*/
-
-impl MCVariablePacketCodec for i32 {
-    fn to_mc_variable_bytes(&self) -> Vec<u8> {
-        let mut result = Vec::new();
-        let mut num = *self;
-
-        loop {
-            let mut value = num & 0b01111111;
-            num >>= 7;
-            if num == 0 {
-                result.push(value as u8);
-                break;
-            } else {
-                value |= 0b10000000;
-                result.push(value as u8);
-            }
-        }
-
-        result
-    }
-
-    fn from_mc_variable_bytes(bytes: &mut Vec<u8>) -> Result<Self, Error> {
-        let mut result: i32 = 0;
-        let mut bytes_read = 0;
-
-        for byte in bytes.iter() {
-            let value = (*byte & 0b01111111) as i32;
-            result |= value << (7 * bytes_read);
-            bytes_read += 1;
-
-            if bytes_read > 5 {
-                return Err(Error::new(ErrorKind::InvalidData, "VarInt was too long"));
-            }
-
-            if *byte & 0b10000000 == 0 {
-                break;
-            }
-        }
-
-        bytes.drain(..bytes_read);
-
-        Ok(result)
-    }
 }
 
-//variable_int_codec!(i32, 5);
-//variable_int_codec!(i64, 10);
+variable_int_codec!(i32, 5);
+variable_int_codec!(i64, 10);
 
 
 impl MCPacketCodec for bool {
@@ -252,13 +208,13 @@ impl MCPacketCodec for String {
 #[cfg(test)]
 mod tests {
     use crate::{MCPacketCodec, MCVariablePacketCodec};
-    use rand::Rng;
-    use rand::distributions::Alphanumeric;
 
     macro_rules! test_encoding {
-        ($Type:ident, $value:expr) => {
+        ($Type:ident, $value:expr, $expected:expr) => {
             let value = $value;
+            let expected = $expected;
             let mut encoded = value.to_mc_bytes();
+            assert_eq!(encoded, expected);
             assert_eq!($Type::from_mc_bytes(&mut encoded).unwrap(), value);
         };
     }
@@ -273,24 +229,24 @@ mod tests {
 
     #[test]
     fn bools() {
-        test_encoding!(bool, true);
-        test_encoding!(bool, false);
+        test_encoding!(bool, true, vec![1]);
+        test_encoding!(bool, false, vec![0]);
     }
 
     #[test]
     fn bytes() {
-        test_encoding!(u8, rand::random::<u8>());
-        test_encoding!(i8, rand::random::<i8>());
+        test_encoding!(u8, 238, vec![238]);
+        test_encoding!(i8, -93, vec![163]);
     }
 
     #[test]
     fn ints() {
-        test_encoding!(u16, rand::random::<u16>());
-        test_encoding!(i16, rand::random::<i16>());
-        test_encoding!(u32, rand::random::<u32>());
-        test_encoding!(i32, rand::random::<i32>());
-        test_encoding!(u64, rand::random::<u64>());
-        test_encoding!(i64, rand::random::<i64>());
+        test_encoding!(u16, 55244, vec![0xD7, 0xCC]);
+        test_encoding!(i16, -22827, vec![0xA6, 0xD5]);
+        test_encoding!(u32, 2221292349, vec![0x84, 0x66, 0x3b, 0x3d]);
+        test_encoding!(i32, -1758047738, vec![0x97, 0x36, 0x52, 0x06]);
+        test_encoding!(u64, 4889273536974385248, vec![0x43, 0xda, 0x30, 0x60, 0x9d, 0x13, 0x70, 0x60]);
+        test_encoding!(i64, -3736352032367538272, vec![0xCC, 0x25, 0xCF, 0x9F, 0x62, 0xEC, 0x8F, 0xA0]);
 
         // Verify endianness
         let encoded = (0x38D4 as i16).to_mc_bytes();
@@ -299,8 +255,8 @@ mod tests {
 
     #[test]
     fn floats() {
-        test_encoding!(f32, rand::random::<f32>());
-        test_encoding!(f64, rand::random::<f64>());
+        test_encoding!(f32, 89013.18686, vec![0x47, 0xad, 0xda, 0x98]);
+        test_encoding!(f64, 9525289013.1872418686, vec![0x42, 0x01, 0xBE, 0x03, 0x01, 0xA9, 0x7F, 0x79]);
         // Endianness guaranteed through integrity of int endianness
     }
 
@@ -320,7 +276,7 @@ mod tests {
     #[test]
     fn strings() {
         let rand_string: String = String::from("DTRWFUYGIUFHINJEfiwuhfwehngviuBYU8739280r");
-        test_encoding!(String, rand_string);
+        //test_encoding!(String, rand_string);
     }
 
 }
